@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f3efe8">
+<title>Ned</title>
+<meta name="apple-mobile-web-app-title" content="Ned">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=3">
+</head>
+<body>
+<div class="app" id="app">
+  <main class="view" id="view"><div class="loading">Loading talks…</div></main>
+
+  <div class="dock" id="dock" hidden>
+    <div class="dock-video" id="dockVideo"></div>
+    <div class="dock-info" data-act="open-now">
+      <div class="dock-title" id="dockTitle"></div>
+      <div class="dock-sub" id="dockSub"></div>
+    </div>
+    <button class="icon-btn pp dock-pp" data-act="toggle" aria-label="Play or pause"></button>
+    <button class="icon-btn dock-next" data-act="next" title="Next in queue" aria-label="Next in queue">
+      <svg viewBox="0 0 24 24"><path d="M6 5l9 7-9 7V5zm10 0h2v14h-2z"/></svg>
+    </button>
+    <button class="dock-q" data-act="queue-open" aria-label="Up next">
+      <svg viewBox="0 0 24 24"><path d="M3 5h13v2H3zm0 6h13v2H3zm0 6h8v2H3zm15-4 5 3.5-5 3.5z"/></svg><b id="dockQCount"></b>
+    </button>
+  </div>
+
+  <nav class="nav" id="nav">
+    <a href="#/home" data-tab="home" aria-label="Home">
+      <svg viewBox="0 0 24 24"><path d="M12 3 3 10.5V21h6.5v-6h5v6H21V10.5z"/></svg><span>Home</span>
+    </a>
+    <a href="#/browse" data-tab="browse" aria-label="Browse">
+      <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 0 1 5.9 12.1l4.8 4.8-1.4 1.4-4.8-4.8A7.5 7.5 0 1 1 10.5 3zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/></svg><span>Browse</span>
+    </a>
+    <a href="#/library" data-tab="library" aria-label="Library">
+      <svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg><span>Library</span>
+    </a>
+  </nav>
+
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <div class="sheet" id="sheet" hidden></div>
+  <div class="toast" id="toast" hidden></div>
+  <audio id="audio" preload="metadata" playsinline></audio>
+</div>
+<script>
+  // Scale the 393×852 iPhone frame down to fit the window on a computer.
+  const fit = () => document.getElementById("app").style.setProperty("--fit",
+    Math.min(1, (innerHeight - 48) / 852, (innerWidth - 48) / 393));
+  addEventListener("resize", fit); fit();
+</script>
+<script src="app.js?v=3"></script>
+</body>
+</html>
