@@ -5,7 +5,7 @@ Videos themselves are not downloaded (Listen mode streams TED's own media files)
 official embed player, so this only stores titles, speakers, length,
 views, topics and thumbnail URLs. Re-run any time to refresh.
 """
-import json, os, time, urllib.request
+import json, os, re, time, urllib.request
 
 URL = "https://www.ted.com/graphql"
 QUERY = """query($after: String) {
@@ -73,10 +73,40 @@ def main():
             break
         after = v["pageInfo"]["endCursor"]
         time.sleep(0.4)
+    save(talks)
+
+
+# Shared address starts, stored once so the list downloads faster on a phone.
+IMG_PREFIXES = [
+    "https://pi.tedcdn.com/r/talkstar-photos.s3.amazonaws.com/",
+    "https://pi.tedcdn.com/r/talkstar-assets.s3.amazonaws.com/production/talks/",
+    "https://pe.tedcdn.com/",
+]
+MP4 = re.compile(r"^https://download\.ted\.com/products/(\d+)\.mp4\?apikey=acme-federated_graphql_prod$")
+
+
+def save(talks):
+    """Write data/talks.json (what the app needs to start) and data/desc.json (loaded later)."""
+    out, desc = [], {}
+    for t in talks:
+        t = dict(t)
+        desc[t["id"]] = t.pop("desc", "")
+        t.pop("ty", None)
+        img = (t.get("img") or "").removesuffix("?w=640")
+        for i, pre in enumerate(IMG_PREFIXES):
+            if img.startswith(pre):
+                img = f"{i}|{img[len(pre):]}"
+                break
+        t["img"] = img
+        m = MP4.match(t.get("a") or "")
+        if m:
+            t["a"] = int(m.group(1))  # app rebuilds TED's download address
+        out.append(t)
     os.makedirs("data", exist_ok=True)
-    with open("data/talks.json", "w") as f:
-        json.dump(talks, f, ensure_ascii=False, separators=(",", ":"))
-    print("saved data/talks.json")
+    for name, obj in [("talks.json", {"v": 2, "img": IMG_PREFIXES, "talks": out}), ("desc.json", desc)]:
+        with open(f"data/{name}", "w") as f:
+            json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+        print(f"saved data/{name}: {os.path.getsize(f'data/{name}') // 1024} KB")
 
 
 if __name__ == "__main__":

@@ -56,21 +56,43 @@
   // ---------- data ----------
   let TALKS = [], BY_ID = new Map(), SPEAKERS = new Map(), TOPIC_COUNT = new Map(), IDF = new Map(), HAY = [];
 
+  // Keep a copy of the data on the device: open instantly from it, refresh it in the background.
+  async function getJSON(url) {
+    if (!("caches" in window)) return (await fetch(url)).json();
+    const cache = await caches.open("ned-data");
+    const fresh = fetch(url, { cache: "no-cache" }).then(async (r) => { if (r.ok) await cache.put(url, r.clone()); return r; });
+    const hit = await cache.match(url);
+    if (hit) { fresh.catch(() => {}); return hit.json(); }
+    return (await fresh).json();
+  }
+
   async function loadData() {
-    const res = await fetch("data/talks.json");
-    TALKS = await res.json();
+    const data = await getJSON("data/talks.json");
+    TALKS = data.talks;
     TALKS.forEach((t, i) => {
       t.i = i;
+      t.desc = "";
+      if (t.img && /^\d\|/.test(t.img)) t.img = data.img[+t.img[0]] + t.img.slice(2) + "?w=640";
+      if (typeof t.a === "number") t.a = `https://download.ted.com/products/${t.a}.mp4?apikey=acme-federated_graphql_prod`;
       BY_ID.set(t.id, t);
       for (const [slug, name] of t.sp) {
         if (!SPEAKERS.has(slug)) SPEAKERS.set(slug, { slug, name, talks: [] });
         SPEAKERS.get(slug).talks.push(t);
       }
       for (const k of t.k) TOPIC_COUNT.set(k, (TOPIC_COUNT.get(k) || 0) + 1);
-      HAY[i] = { title: norm(t.t), sp: norm(t.s + " " + t.sp.map((s) => s[1]).join(" ")), k: norm(t.k.join(" | ")), desc: norm(t.desc) };
+      HAY[i] = { title: norm(t.t), sp: norm(t.s + " " + t.sp.map((s) => s[1]).join(" ")), k: norm(t.k.join(" | ")), desc: "" };
     });
     const N = TALKS.length;
     for (const [k, c] of TOPIC_COUNT) IDF.set(k, Math.log(N / c));
+  }
+
+  // Descriptions come second, so the app can start before they arrive.
+  async function loadDescriptions() {
+    const desc = await getJSON("data/desc.json");
+    for (const t of TALKS) { t.desc = desc[t.id] || ""; HAY[t.i].desc = norm(t.desc); }
+    const h = location.hash;
+    if (h.startsWith("#/talk/")) rerender();
+    else if (h.startsWith("#/browse") && $("#q")?.value.trim()) refreshFiltered("search");
   }
 
   // ---------- recommendation & search ----------
@@ -639,7 +661,7 @@
   window.addEventListener("hashchange", () => { closeSheet(); route(); });
 
   // ---------- boot ----------
-  loadData().then(() => { updateBadge(); route(); }).catch((err) => {
+  loadData().then(() => { updateBadge(); route(); loadDescriptions().catch(() => {}); }).catch((err) => {
     $("#view").innerHTML = empty("Couldn't load talks", "Run fetch-talks.py first, then serve this folder. " + err.message);
   });
 })();
